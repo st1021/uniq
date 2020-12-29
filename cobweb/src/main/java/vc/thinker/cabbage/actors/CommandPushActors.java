@@ -47,6 +47,12 @@ public class CommandPushActors extends UntypedActor{
 		case upgrade:
 			//commandPush.upgrade(content.getUmMachineCode(), content.getUrl(), null);
 			break;
+		case syn_server:
+//			tcpCommandPush.syn_server();
+			break;
+		case query_server:
+			tcpCommandPush.sendQueryServer(content.getCabinetId());
+			break;
 		default:
 			break;
 		}

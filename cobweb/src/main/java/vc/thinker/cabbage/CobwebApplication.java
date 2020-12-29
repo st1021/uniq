@@ -1,7 +1,6 @@
 package vc.thinker.cabbage;
 
 
-import java.net.UnknownHostException;
 
 import javax.annotation.PostConstruct;
 
@@ -21,9 +20,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-
-import com.sinco.common.utils.Base64;
-import com.sinco.common.utils.IPUtil;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -71,27 +67,27 @@ public class CobwebApplication {
 		return new RelinkOpenSDK(paasId, paasUrl);
 	}
 	
-	private Base64 b64 = new Base64();
+//	private Base64 b64 = new Base64();
 	
 	/*
 	 * 服务器编码
 	 */
-	public static String serviceCode;
+	public static String serviceCode = "share_cannel_msg";
 	
     @Autowired
     private ApplicationContext applicationContext;
     
     @PostConstruct
-    public void init(){
-    	String host;
-		try {
-			host = IPUtil.getLocalIP() + ":" + PORT;
-	    	serviceCode = b64.encode(host.getBytes());
-	    	log.info("init serviceCode = [{}]",serviceCode);
-		} catch (UnknownHostException e) {
-			throw new RuntimeException("获取本机ip地址失败",e);
-		}
-    }
+//    public void init(){
+//    	String host;
+//		try {
+//			host = IPUtil.getLocalIP() + ":" + PORT;
+//	    	serviceCode = b64.encode(host.getBytes());
+//	    	log.info("init serviceCode = [{}]",serviceCode);
+//		} catch (UnknownHostException e) {
+//			throw new RuntimeException("获取本机ip地址失败",e);
+//		}
+//    }
     
 	@Bean
 	public SpringExtension springExtension(){
@@ -117,10 +113,10 @@ public class CobwebApplication {
         return system;
     }
 	
-	@Bean
-	public LbsBiz lbsBiz(){
-		return new BaiduLbsBiz(lbsBaiduAk);
-	}
+//	@Bean
+//	public LbsBiz lbsBiz(){
+//		return new BaiduLbsBiz(lbsBaiduAk);
+//	}
 	
     public static void main(String[] args) throws Exception {
     	SpringApplication.run(CobwebApplication.class, args);

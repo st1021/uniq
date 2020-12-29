@@ -4,6 +4,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -11,6 +13,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
+
+import com.google.api.client.util.Maps;
 
 import cn.jiguang.common.utils.StringUtils;
 import vc.thinker.cabbage.se.bo.CabinetBO;
@@ -20,6 +24,7 @@ import vc.thinker.cabbage.se.dao.CabinetStatusDao;
 import vc.thinker.cabbage.se.dao.CabinetTypeDao;
 import vc.thinker.cabbage.se.dao.PortableBatteryDao;
 import vc.thinker.cabbage.se.exception.CabinetNotFindException;
+import vc.thinker.cabbage.se.exception.CabinetStatusNotFindException;
 import vc.thinker.cabbage.se.model.CabinetStatus;
 import vc.thinker.cabbage.se.model.CabinetStatus.ChannelStatus;
 import vc.thinker.cabbage.se.model.CabinetStatus.RunStatus;
@@ -30,45 +35,63 @@ import vc.thinker.cabbage.util.CabinetTypeEnum;
 @Service
 public class CabinetStatusService {
 
+	public static final Logger LOGGER = LoggerFactory.getLogger(CabinetStatusService.class);
+
 	@Autowired
 	private CabinetStatusDao cabinetStatusDao;
-	
+
 	@Autowired
 	private PortableBatteryDao portableBatteryDao;
-	
+
 	@Autowired
 	private CabinetDao cabinetDao;
-	
+
 	@Autowired
 	private CabinetTypeDao cabinetTypeDao;
-	
-	
+
+	public List<CabinetStatus> listOnline() {
+		return cabinetStatusDao.listOnline();
+	}
+
 	/**
 	 * 同步配制
+	 * 
 	 * @param cabinetId
 	 * @param version
 	 */
-	public void syncSetting(Long cabinetId,String version){
-		CabinetStatus status=cabinetStatusDao.findByCid(cabinetId);
-		if(status == null){
-			status=create(cabinetId, null);
+	public void syncSetting(Long cabinetId, String version) {
+		CabinetStatus status = cabinetStatusDao.findByCid(cabinetId);
+		if (status == null) {
+			status = create(cabinetId, null);
 		}
 		status.setVersion(version);
 		cabinetStatusDao.save(status);
 	}
-	
+
 	/**
 	 * 更新电池信息
+	 * 
 	 * @param pb
 	 */
-	public void updateBattery(PortableBattery pb){
+	public void updateBattery(PortableBattery pb) {
 		pb.setUpdateTime(new Date());
 		portableBatteryDao.insertUpdate(pb);
 	}
-	
-	
+
+	public void heartbeat(String boxId) {
+		CabinetStatus status = cabinetStatusDao.findByCabinetCode(boxId);
+		if (status == null) {
+			throw new CabinetStatusNotFindException("boxId:" + boxId + " not found.");
+		}
+		status.setLastUpdateTime(new Date());
+		status.setLastHeartbeat(new Date());
+		status.setOnline(true);
+		cabinetStatusDao.save(status);
+	}
+
 	/**
 	 * 心跳
+	 * 
 	 * @param cabinetId
 	 * @param channelStatusList
 	 * @param usable_battery_new
@@ -76,31 +99,32 @@ public class CabinetStatusService {
 	 * @param existPositionNum
 	 * @param serviceCode
 	 */
-	public void heartbeat(Long cabinetId,List<ChannelStatus> channelStatusList,Map<String, Integer> usable_battery_new
-			,int idlePositionNum,int existPositionNum,String serviceCode){
-		//带此参数表示同步整个充电柜电池信息，不带则只是增量同步
-		//String TYPE=cmd.get("TYPE");
-		//槽位状态
-		CabinetStatus status=cabinetStatusDao.findByCid(cabinetId);
-		if(status == null){
-			status=create(cabinetId, serviceCode);
+	public void heartbeat(Long cabinetId, List<ChannelStatus> channelStatusList,
+			Map<String, Integer> usable_battery_new, int idlePositionNum, int existPositionNum, String serviceCode) {
+		// 带此参数表示同步整个充电柜电池信息，不带则只是增量同步
+		// String TYPE=cmd.get("TYPE");
+		// 槽位状态
+		CabinetStatus status = cabinetStatusDao.findByCid(cabinetId);
+		if (status == null) {
+			status = create(cabinetId, serviceCode);
 		}
-		
+
 		setBatteryTypeCount(usable_battery_new, status);
-		
+
 		status.setLastUpdateTime(new Date());
 		status.setLastHeartbeat(new Date());
 		status.setIdlePositionNum(idlePositionNum);
 		status.setExistPositionNum(existPositionNum);
 		status.setServiceCode(serviceCode);
-		if(channelStatusList != null){
+		if (channelStatusList != null) {
 			status.setChannelStatusList(channelStatusList);
 		}
 		cabinetStatusDao.save(status);
 	}
-	
+
 	/**
 	 * 归还更新数据
+	 * 
 	 * @param cabinetId
 	 * @param channelStatusList
 	 * @param usable_battery_new
@@ -108,21 +132,21 @@ public class CabinetStatusService {
 	 * @param existPositionNum
 	 * @param serviceCode
 	 */
-	public void returnBack(Long cabinetId,Map<String, Integer> usable_battery_new
-			,int idlePositionNum,int existPositionNum,String batteryCode,Integer channel,String serviceCode){
-		CabinetStatus status=cabinetStatusDao.findByCid(cabinetId);
-		if(status == null){
-			status=create(cabinetId, serviceCode);
+	public void returnBack(Long cabinetId, Map<String, Integer> usable_battery_new, int idlePositionNum,
+			int existPositionNum, String batteryCode, Integer channel, String serviceCode) {
+		CabinetStatus status = cabinetStatusDao.findByCid(cabinetId);
+		if (status == null) {
+			status = create(cabinetId, serviceCode);
 		}
-		
+
 		setBatteryTypeCount(usable_battery_new, status);
 		status.setLastUpdateTime(new Date());
 		status.setIdlePositionNum(idlePositionNum);
 		status.setExistPositionNum(existPositionNum);
 		status.setServiceCode(serviceCode);
 		cabinetStatusDao.save(status);
-		
-		PortableBattery pb=new PortableBattery();
+
+		PortableBattery pb = new PortableBattery();
 		pb.setPortableBatteryCode(batteryCode);
 		pb.setLocationType(PortableBatteryConstatns.LOCATION_TYPE_IN_CABINET);
 		pb.setLastLocationTime(new Date());
@@ -130,9 +154,10 @@ public class CabinetStatusService {
 		pb.setCabinetChannel(channel);
 		portableBatteryDao.updateByCode(pb, batteryCode);
 	}
-	
+
 	/**
 	 * 归还更新数据
+	 * 
 	 * @param cabinetId
 	 * @param channelStatusList
 	 * @param usable_battery_new
@@ -140,16 +165,17 @@ public class CabinetStatusService {
 	 * @param existPositionNum
 	 * @param serviceCode
 	 */
-	public void returnBack(Long cabinetId,String batteryCode,Integer channel,String serviceCode){
-		CabinetStatus status=cabinetStatusDao.findByCid(cabinetId);
-		if(status == null){
-			status=create(cabinetId, serviceCode);
+	public void returnBack(Long cabinetId, String batteryCode, Integer channel, String serviceCode) {
+		CabinetStatus status = cabinetStatusDao.findByCid(cabinetId);
+		if (status == null) {
+			status = create(cabinetId, serviceCode);
 		}
 		returnBack(status, batteryCode, channel, serviceCode);
 	}
-	
+
 	/**
 	 * 归还更新数据
+	 * 
 	 * @param cabinetId
 	 * @param channelStatusList
 	 * @param usable_battery_new
@@ -157,8 +183,8 @@ public class CabinetStatusService {
 	 * @param existPositionNum
 	 * @param serviceCode
 	 */
-	public void returnBack(CabinetStatus status,String batteryCode,Integer channel,String serviceCode){
-		PortableBattery pb=new PortableBattery();
+	public void returnBack(CabinetStatus status, String batteryCode, Integer channel, String serviceCode) {
+		PortableBattery pb = new PortableBattery();
 		pb.setPortableBatteryCode(batteryCode);
 		pb.setLocationType(PortableBatteryConstatns.LOCATION_TYPE_IN_CABINET);
 		pb.setLastLocationTime(new Date());
@@ -166,9 +192,43 @@ public class CabinetStatusService {
 		pb.setCabinetChannel(channel);
 		portableBatteryDao.updateByCode(pb, batteryCode);
 	}
+
+	
+	/**
+	 * 同步电池
+	 * @param boxId
+	 * @param remainNum
+	 * @param pbList
+	 */
+	public void syncBattery(String boxId, Integer remainNum, List<PortableBattery> pbList) {
+		// 存在校验
+		CabinetStatus status = cabinetStatusDao.findByCabinetCode(boxId);
+		if (null == status) {
+			LOGGER.info("boxId:{} not found.", boxId);
+			
+			return;
+		}
+		// 更新充电柜
+		status.setBatteryType4Count(pbList.size());
+		status.setLastUpdateTime(new Date());
+		status.setIdlePositionNum(9 - pbList.size());
+		status.setExistPositionNum(pbList.size());
+//		status.setPositionTotal(12);
+		status.setChannelStatusList(null);
+		cabinetStatusDao.save(status);
+		// 更新充电宝
+		for (PortableBattery pb : pbList) {
+			pb.setCabinetId(status.getCid());
+			pb.setLocationType(PortableBatteryConstatns.LOCATION_TYPE_IN_CABINET);
+			pb.setLastLocationTime(new Date());
+			updateBattery(pb);
+		}
+	}
+	
 	
 	/**
 	 * 同步电池配制
+	 * 
 	 * @param cabinetId
 	 * @param channelStatusList
 	 * @param usable_battery_new
@@ -177,45 +237,47 @@ public class CabinetStatusService {
 	 * @param pbList
 	 * @param serviceCode
 	 */
-	public void syncBattery(Long cabinetId,List<ChannelStatus> channelStatusList,Map<String, Integer> usable_battery_new
-			,int idlePositionNum,int existPositionNum,List<PortableBattery> pbList,String serviceCode){
-		//带此参数表示同步整个充电柜电池信息，不带则只是增量同步
-		//String TYPE=cmd.get("TYPE");
-		//槽位状态
-		CabinetStatus status=cabinetStatusDao.findByCid(cabinetId);
-		if(status == null){
-			status=create(cabinetId, serviceCode);
+	public void syncBattery(Long cabinetId, List<ChannelStatus> channelStatusList,
+			Map<String, Integer> usable_battery_new, int idlePositionNum, int existPositionNum,
+			List<PortableBattery> pbList, String serviceCode) {
+		// 带此参数表示同步整个充电柜电池信息，不带则只是增量同步
+		// String TYPE=cmd.get("TYPE");
+		// 槽位状态
+		CabinetStatus status = cabinetStatusDao.findByCid(cabinetId);
+		if (status == null) {
+			status = create(cabinetId, serviceCode);
 		}
-		
+
 		setBatteryTypeCount(usable_battery_new, status);
-		
+
 		status.setLastUpdateTime(new Date());
 		status.setIdlePositionNum(idlePositionNum);
 		status.setExistPositionNum(existPositionNum);
 		status.setPositionTotal(channelStatusList.size());
 		status.setChannelStatusList(channelStatusList);
-		if(serviceCode != null){
+		if (serviceCode != null) {
 			status.setServiceCode(serviceCode);
 		}
 		status.setLastHeartbeat(new Date());
 		cabinetStatusDao.save(status);
-		
+
 		for (PortableBattery pb : pbList) {
 			pb.setCabinetId(status.getCid());
 			pb.setLocationType(PortableBatteryConstatns.LOCATION_TYPE_IN_CABINET);
 			pb.setLastLocationTime(new Date());
 			updateBattery(pb);
 		}
-		
+
 	}
-	
+
 	/**
 	 * 设置各类型数量
+	 * 
 	 * @param usable_battery_new
 	 * @param status
 	 */
-	private void setBatteryTypeCount(Map<String, Integer> param,CabinetStatus status){
-		
+	private void setBatteryTypeCount(Map<String, Integer> param, CabinetStatus status) {
+
 		for (Map.Entry<String, Integer> ubn : param.entrySet()) {
 			switch (ubn.getKey()) {
 			case CabinetConstants.BATTERY_TYPE_1:
@@ -233,74 +295,81 @@ public class CabinetStatusService {
 			}
 		}
 	}
-	
+
 	/**
 	 * 登录
+	 * 
 	 * @param code
 	 * @param serviceCode
 	 */
-	public CabinetStatus login(String cabinetCode,String serviceCode){
-		CabinetStatus status=cabinetStatusDao.findByCabinetCode(cabinetCode);
-		if(status == null){
-			status=create(cabinetCode, serviceCode);
+	public CabinetStatus login(String cabinetCode, String serviceCode) {
+		CabinetStatus status = cabinetStatusDao.findByCabinetCode(cabinetCode);
+		if (status == null) {
+			status = create(cabinetCode, serviceCode);
 		}
 		return status;
 	}
+
 	/**
 	 * 登录
+	 * 
 	 * @param code
 	 * @param serviceCode
 	 */
-	public CabinetStatus login(Long cabinetId,String serviceCode){
-		CabinetStatus status=cabinetStatusDao.findByCid(cabinetId);
-		if(status == null){
-			status=create(cabinetId, serviceCode);
+	public CabinetStatus login(Long cabinetId, String serviceCode) {
+		CabinetStatus status = cabinetStatusDao.findByCid(cabinetId);
+		if (status == null) {
+			status = create(cabinetId, serviceCode);
 		}
 		status.setServiceCode(serviceCode);
 		cabinetStatusDao.save(status);
 		return status;
 	}
-	
+
 	/**
 	 * 创建充电柜状态
+	 * 
 	 * @param lockCode
 	 * @return
 	 */
-	public CabinetStatus create(String code,String serviceCode){
-		return create(null,code, serviceCode);
+	public CabinetStatus create(String code, String serviceCode) {
+		return create(null, code, serviceCode);
 	}
-	
+
 	/**
 	 * 创建充电柜状态
+	 * 
 	 * @param lockCode
 	 * @return
 	 */
-	public CabinetStatus create(Long cid,String serviceCode){
-		return create(cid,null, serviceCode);
+	public CabinetStatus create(Long cid, String serviceCode) {
+		return create(cid, null, serviceCode);
 	}
-	
+
 	/**
 	 * 创建充电柜状态
+	 * 
 	 * @param lockCode
 	 * @return
 	 */
-	public CabinetStatus create(Long cid,String code,String serviceCode){
-		CabinetStatus cs=new CabinetStatus();
-		CabinetBO cabinet =null;
-		if(cid != null){
+	public CabinetStatus create(Long cid, String code, String serviceCode) {
+		CabinetStatus cs = new CabinetStatus();
+		CabinetBO cabinet = null;
+		if (cid != null) {
 			cabinet = cabinetDao.findOne(cid);
-		}else{
+		} else {
 			cabinet = cabinetDao.findByCabinetCode(code);
 		}
-		if(cabinet == null){
-			throw new CabinetNotFindException("Cabinet not find");
+		if (cabinet == null) {
+			throw new CabinetNotFindException("Cabinet not find"+code);
 		}
-		CabinetTypeBO cabinetType=cabinetTypeDao.findOne(cabinet.getTypeId());
-		
+		CabinetTypeBO cabinetType = cabinetTypeDao.findOne(cabinet.getTypeId());
+
 		cs.setPositionTotal(cabinetType.getCapacity());
-		if(cabinet.getLocationLon() != null && cabinet.getLocationLat() != null){
-			cs.setLocation(new org.springframework.data.geo.Point(cabinet.getLocationLon().doubleValue(),cabinet.getLocationLat().doubleValue()));
-			cs.setLocationDetails(cabinet.getLocationAddress()+cabinet.getLocationDesc());
+		if (cabinet.getLocationLon() != null && cabinet.getLocationLat() != null) {
+			cs.setLocation(new org.springframework.data.geo.Point(cabinet.getLocationLon().doubleValue(),
+					cabinet.getLocationLat().doubleValue()));
+			cs.setLocationDetails(cabinet.getLocationAddress() + cabinet.getLocationDesc());
 		}
 		cs.setRunStatus(RunStatus.normal);
 		cs.setSysCode(cabinet.getSysCode());
@@ -314,40 +383,60 @@ public class CabinetStatusService {
 
 	/**
 	 * 在线数据分页查询
+	 * 
 	 * @param page
 	 * @param vo
 	 * @return
 	 */
 	public Page<CabinetStatus> findPageByVo(Pageable pageable, CabinetFindVO vo) {
-		
+
 		Query query = new Query();
-		
-		Criteria c= new Criteria();
-		
-		if(!StringUtils.isEmpty(vo.getSysCode())){
+
+		Criteria c = new Criteria();
+
+		if (!StringUtils.isEmpty(vo.getSysCode())) {
 			c.and(CabinetStatus.F_SYS_CODE).regex(vo.getSysCode());
 		}
-		if(!StringUtils.isEmpty(vo.getLocationDetails())){
+		if (!StringUtils.isEmpty(vo.getLocationDetails())) {
 			c.and(CabinetStatus.F_LOCATION_DETAILS).regex(vo.getLocationDetails());
 		}
 		query.addCriteria(c);
-		
+
 		long total = cabinetStatusDao.countByQuery(query);
-		
+
 		query.with(pageable);
 		List<CabinetStatus> messages = cabinetStatusDao.findByQuery(query);
-		
+
 		Page<CabinetStatus> resu_list = new PageImpl<CabinetStatus>(messages, pageable, total);
-		
+
 		return resu_list;
 	}
-
 
 	public CabinetStatus findBySysCode(String sysCode) {
 		return cabinetStatusDao.findBySysCode(sysCode);
 	}
-	
+
 	public CabinetStatus findByCabinetCode(String cabinetCode) {
 		return cabinetStatusDao.findByCabinetCode(cabinetCode);
 	}
+
+	/**
+	 * 下线设备
+	 * 
+	 * @param id
+	 */
+	public void offline(String id) {
+		
+//		CabinetStatus cabinetStatus = new CabinetStatus();
+//		cabinetStatus.setId(id);
+//		cabinetStatus.setLastUpdateTime(new Date());
+//		cabinetStatus.setOnline(false);
+//		cabinetStatusDao.save(cabinetStatus);
+
+		Map<String, Object> param = Maps.newHashMap();
+		param.put(CabinetStatus.F_ONLINE, false);
+		param.put(CabinetStatus.F_LAST_UPDATE_TIME, new Date());
+		cabinetStatusDao.update(id, param);
+	}
+	
 }

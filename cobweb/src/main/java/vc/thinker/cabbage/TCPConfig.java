@@ -17,12 +17,15 @@ import org.springframework.context.annotation.Configuration;
 
 import akka.actor.ActorSystem;
 import vc.thinker.cabbage.cmd.FutejiaTCPCommandPush;
+import vc.thinker.cabbage.cmd.ShareTcpCommonPush;
 import vc.thinker.cabbage.cmd.TcpCommandPush;
 import vc.thinker.cabbage.cmd.YunchongbaiTCPCommandPush;
 import vc.thinker.cabbage.extension.SpringExtension;
+import vc.thinker.cabbage.se.BoxConstants;
 import vc.thinker.cabbage.tcp.ConductorHandler;
 import vc.thinker.cabbage.tcp.FutiejiaByteArrayCodecFactory;
 import vc.thinker.cabbage.tcp.SessionStoreManager;
+import vc.thinker.cabbage.tcp.ShareByteArrayCodecFactory;
 import vc.thinker.cabbage.tcp.YunchongbaiByteArrayCodecFactory;
 
 /**
@@ -55,30 +58,39 @@ public class TCPConfig {
 	}
 	
 	@Bean
-	public TcpCommandPush yunchongbaiTCPCommandPush(){
-		if("futejiaTcpActors".equals(tcpAkkaReceive)){
+	public TcpCommandPush tcpCommandPush() {
+		switch (tcpAkkaReceive) {
+		case BoxConstants.BOX_TYPE_SHARE:
+			return new ShareTcpCommonPush();
+		case BoxConstants.BOX_TYPE_FUTEJIA:
 			return new FutejiaTCPCommandPush();
+		default:
+			return new YunchongbaiTCPCommandPush();
 		}
-		return new YunchongbaiTCPCommandPush();
 	}
 	
 	@Bean
-	public SocketAcceptor acceptor() throws IOException{
-		
-		ProtocolCodecFactory protocolCodecFactory=null;
-		
-		if("futejiaTcpActors".equals(tcpAkkaReceive)){
-			protocolCodecFactory= new  FutiejiaByteArrayCodecFactory();
-		}else{
-			protocolCodecFactory= new  YunchongbaiByteArrayCodecFactory();
+	public SocketAcceptor acceptor() throws IOException {
+
+		ProtocolCodecFactory protocolCodecFactory = null;
+
+		switch (tcpAkkaReceive) {
+		case BoxConstants.BOX_TYPE_SHARE:
+			protocolCodecFactory = new ShareByteArrayCodecFactory();
+			break;
+		case BoxConstants.BOX_TYPE_FUTEJIA:
+			protocolCodecFactory = new FutiejiaByteArrayCodecFactory();
+			break;
+		default:
+			protocolCodecFactory = new YunchongbaiByteArrayCodecFactory();
+			break;
 		}
-				
-        SocketAcceptor acceptor = new NioSocketAcceptor();
-        acceptor.setReuseAddress(true);
-        acceptor.getFilterChain().addLast("codec", new ProtocolCodecFilter(protocolCodecFactory));
-        acceptor.setHandler(new ConductorHandler(springExtension,actorSystem,sessionStoreManager(),tcpAkkaReceive));
-        acceptor.bind(new InetSocketAddress(PORT));
-        log.info("bind port {}",PORT);
-        return acceptor;
+		SocketAcceptor acceptor = new NioSocketAcceptor();
+		acceptor.setReuseAddress(true);
+		acceptor.getFilterChain().addLast("codec", new ProtocolCodecFilter(protocolCodecFactory));
+		acceptor.setHandler(new ConductorHandler(springExtension, actorSystem, sessionStoreManager(), tcpAkkaReceive));
+		acceptor.bind(new InetSocketAddress(PORT));
+		log.info("bind port {}", PORT);
+		return acceptor;
 	}
 }

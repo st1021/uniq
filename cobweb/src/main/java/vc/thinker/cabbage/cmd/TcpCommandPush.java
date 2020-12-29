@@ -45,4 +45,18 @@ public interface TcpCommandPush {
 	 */
 	public void sendSysOut(String cabinetId,String channle);
 	
+	/**
+	 * 设置服务器地址
+	 * 
+	 * @param cabinetid
+	 */
+	void sendSetServer(String cabinetId, String id, Integer port, Integer interval);
+	
+	/**
+	 * 查询服务器地址
+	 * 
+	 * @param cabientId
+	 */
+	void sendQueryServer(String cabientId);
+	
 }

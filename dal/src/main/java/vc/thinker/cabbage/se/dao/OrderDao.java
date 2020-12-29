@@ -270,4 +270,22 @@ public class OrderDao {
 		example.createCriteria().andStatusEqualTo(status);
 		return mapper.selectByExample(example);
 	}
+
+	public OrderBO getBySysCodeAndSlot(String sysCode, int slot) {
+		OrderExample example = new OrderExample();
+		example.createCriteria().andBorrowSysCodeEqualTo(sysCode).andBorrowChannelEqualTo(slot);
+		example.setOrderByClause("create_time desc");
+		example.setLimit(1);
+		List<OrderBO> list = mapper.selectByExample(example);
+		return list.isEmpty() ? null : list.get(0);
+	}
+
+	public OrderBO getByDongPbId(String pbId) {
+		OrderExample example = new OrderExample();
+		example.createCriteria().andPbCodeEqualTo(pbId).andStatusEqualTo(OrderConstants.ORDER_STATUS_30);
+		example.setOrderByClause("create_time desc");
+		example.setLimit(1);
+		List<OrderBO> list = mapper.selectByExample(example);
+		return list.isEmpty() ? null : list.get(0);
+	}
 }

@@ -76,6 +76,17 @@ public class CabinetRemoteHandle {
 		messageHandler.sendMessage(cs.getServiceCode(),JSON.toJSONString(lockNoticeContent));
 	}
 	
+	public void synchronizePb(String cabinetCode) {
+		CabinetStatus cs = cabinetStatusDao.findByCabinetCode(cabinetCode);
+		if (null == cs) {
+			return;
+		}
+		CabinetNoticeContent lockNoticeContent = new CabinetNoticeContent();
+		lockNoticeContent.setNoticeType(NoticeType.sync);
+		lockNoticeContent.setCabinetId(cs.getCabinetCode());
+		messageHandler.sendMessage(cs.getServiceCode(), JSON.toJSONString(lockNoticeContent));
+	}
+
 	/**
 	 * 查询
 	 * @param sysCode
@@ -159,7 +170,7 @@ public class CabinetRemoteHandle {
 	}
 	
 	public static enum NoticeType{
-		out,upgrade,sync,query,lock,unlock,sys_out
+		out,upgrade,sync,query,lock,unlock,sys_out, syn_server, query_server
 	}
 	
 	public static class CabinetNoticeContent{
@@ -234,4 +245,5 @@ public class CabinetRemoteHandle {
 			this.second = second;
 		}
 	}
+	
 }

@@ -58,7 +58,8 @@ tcp:
     run: ${tcp_run:true}
     port: ${tcp_port:7002}
     akka: 
-        receive: ${tcp_akka_receive:futejiaTcpActors}
+        #receive: ${tcp_akka_receive:futejiaTcpActors}
+        receive: ${tcp_akka_receive:shareTcpActors}
 
 app:
     isProduct: ${app_isProduct:false}
@@ -70,7 +71,7 @@ app:
 
 # Server
 server:
-    port: ${server_port:9999}
+    port: ${server_port:19091}
 
 command:
     push:

@@ -2,6 +2,8 @@ package vc.thinker.cabbage.util;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -109,5 +111,10 @@ public class DateTimeUtils {
 	public static Date getAppointDateMonth(String dateMonth) throws ParseException{
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 		return sdf.parse(dateMonth);
+	}
+
+	public static Date getSomeMinuteBeforeDate(Long minutes) {
+		LocalDateTime localDateTime = LocalDateTime.now().plusMinutes(minutes - minutes * 2);
+		return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
 	}
 }

@@ -132,4 +132,16 @@ public class FutejiaTCPCommandPush implements TcpCommandPush {
 		System.arraycopy(msg.getBytes(), 0, reslut, 4, msg.getBytes().length);
 		return reslut;
 	}
+
+	@Override
+	public void sendSetServer(String cabinetId, String id, Integer port, Integer interval) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void sendQueryServer(String cabientId) {
+		// TODO Auto-generated method stub
+		
+	}
 }

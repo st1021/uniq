@@ -248,4 +248,10 @@ public class CabinetStatusDao {
 		
 		return false;
 	}
+
+	public List<CabinetStatus> listOnline() {
+		Query query = new Query();
+		query.addCriteria(Criteria.where(CabinetStatus.F_ONLINE).is(true));
+		return mongoTemplate.find(query, CabinetStatus.class);
+	}
 }

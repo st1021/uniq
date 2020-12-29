@@ -211,4 +211,16 @@ public class YunchongbaiTCPCommandPush implements TcpCommandPush {
 		String result=StringUtils.stripEnd(msg.toString(), ";");
 		return result+"\r\n";
 	}
+
+	@Override
+	public void sendSetServer(String cabinetId, String id, Integer port, Integer interval) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void sendQueryServer(String cabientId) {
+		// TODO Auto-generated method stub
+		
+	}
 }

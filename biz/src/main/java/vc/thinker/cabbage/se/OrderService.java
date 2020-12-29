@@ -260,17 +260,17 @@ public class OrderService {
 		Order order = this.createOrder(member, cabinet, seller,clientSource);
 		
 		
-		long cabinetType = cabinet.getTypeId();
+//		long cabinetType = cabinet.getTypeId();
 		/**
 		 * 1.RELINK的设备通过http与iot中间件平台通信；
 		 * 2.FTJ/YCB的设备，异步触发tcp通知再等待机器上报命令；
 		 * 3.YCBB设备
 		 */
-		if (cabinetType == CabinetTypeEnum.RELINK.getCode()
-			    || cabinetType == CabinetTypeEnum.RELINKB.getCode()
-			    || cabinetType == CabinetTypeEnum.RELINKC.getCode()
-			    ) {
-			this.relinkOut(cabinet.getCabinetCode(), order.getOrderCode());
+//		if (cabinetType == CabinetTypeEnum.RELINK.getCode()
+//			    || cabinetType == CabinetTypeEnum.RELINKB.getCode()
+//			    || cabinetType == CabinetTypeEnum.RELINKC.getCode()
+//			    ) {
+//			this.relinkOut(cabinet.getCabinetCode(), order.getOrderCode());
 //		} else if (cabinetType == CabinetTypeEnum.FTJ.getCode() 
 //				|| cabinetType == CabinetTypeEnum.YCB.getCode()) {
 //			// 执行借出事件（TransactionalEventListener）
@@ -278,12 +278,12 @@ public class OrderService {
 //			event.batteryType = batteryType;
 //			event.order=order;
 //			publisher.publishEvent(event);
-		} else {
+//		} else {
 			OutBatteryEvent event=new OutBatteryEvent();
 			event.batteryType = batteryType;
 			event.order=order;
 			publisher.publishEvent(event);
-		}
+//		}
 		return order; 
 	}
  
@@ -392,6 +392,55 @@ public class OrderService {
 		orderDao.update(bo);
 	}
 	
+	
+	/**
+	 * 开始订单
+	 * 
+	 * @param boxId
+	 * @param slot
+	 * @param pbId
+	 */
+	public void beginOrder(String boxId, String slot, String pbId) {
+		CabinetBO cabinet = cabinetDao.findByCabinetCode(boxId);
+		if (null == cabinet) {
+			log.info("boxId:{} not found.", boxId);
+			return;
+		}
+
+		OrderBO order = orderDao.getBySysCodeAndSlot(cabinet.getSysCode(), Integer.parseInt(slot));
+		if (null == order) {
+			log.info("boxId:{} 订单未找到.", boxId);
+			return;
+		}
+
+		PortableBatteryBO pb = portableBatteryDao.findByCode(pbId);
+		if (pb == null) {
+			log.info("boxId:{}, pbId:{} not found", boxId, pbId);
+			return;
+		}
+
+		// 更新工单状态
+		OrderBO upOrder = new OrderBO();
+		upOrder.setId(order.getId());
+		upOrder.setBeginTime(new Date());
+		upOrder.setPbCode(boxId);
+		upOrder.setPbId(pb.getId());
+		upOrder.setStatus(OrderConstants.ORDER_STATUS_30);
+		orderDao.save(upOrder);
+
+		// 如果多个订单设置其它订单失败
+		orderDao.updateOrderFail(order.getUid());
+
+		// 发送消息到个人用户
+		OrderMessageEvent event = new OrderMessageEvent();
+		event.setContent("订单[" + order.getOrderCode() + "]开始");
+		event.setMobileMsgType(SysMessageConstants.MOBILE_MESSAGE_UM_ORDER_CREATE);
+		event.setOrderCode(order.getOrderCode());
+		event.setToMember(true);
+		publisher.publishEvent(event);
+	}
+
+
 	/**
 	 * 开始订单
 	 * @param sysCode
@@ -460,6 +509,24 @@ public class OrderService {
 		return endOrder(order,OrderConstants.RETURN_TYPE_PLATFORM,null);
 	}
 	
+	/**
+	 * 用户归还，结束订单
+	 * 
+	 * @param boxId
+	 * @param pbId
+	 * @param slot
+	 */
+	public void cabinetEndOrder(String boxId, String pbId, String slot) {
+		CabinetBO cabinet = cabinetDao.findByCabinetCode(boxId);
+		if (null == cabinet) {
+			log.info("boxId:{} not found.", boxId);
+			return;
+		}
+		
+		OrderBO order = orderDao.getByDongPbId(pbId);
+		order.setReturnChannel(Integer.parseInt(slot));
+		endOrder(order, OrderConstants.RETURN_TYPE_CABINET,cabinet.getId());
+	}
 	
 	/**
 	 * 机柜结束订单，转入未支付
@@ -1063,4 +1130,6 @@ public class OrderService {
 			publisher.publishEvent(event);
 		}
 	}
+
+
 }
