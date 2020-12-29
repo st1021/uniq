@@ -1,7 +1,6 @@
 package vc.thinker.cabbage.actors;
 
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -60,38 +59,6 @@ public class ShareTcpActors extends UntypedActor {
 	
 	@Autowired
 	private OrderService orderService;
-
-	public static void main(String[] args) {
-//		String str = "00206001f61122334455667788023300114859";
-//		int parseInt = Integer.parseInt(str.substring(18, 20), 16);
-//		System.out.println(parseInt);
-		
-		String orgmsg = "00206001f6112233445566778802330011485943413039323031323030303030310000206001f61122334455667788023300114859434130393230313230303030303100";
-		int bodyLength = Integer.parseInt(orgmsg.substring(0,4), 16);
-		System.out.println(bodyLength);
-		String substring = orgmsg.substring(4);
-		if(substring.length()/2 == bodyLength) {
-			System.err.println(true);
-		}else {
-			String substring2 = orgmsg.substring(0, bodyLength*2+4);
-			System.out.println(substring2);
-			System.out.println(orgmsg.substring(bodyLength*2+4));
-		}
-		
-	}
-	
-	public static List<String> getBody(String str){
-		ArrayList<String> list = Lists.newArrayList();
-		int bodyLength = Integer.parseInt(str.substring(0,4), 16);
-		if(bodyLength*2 == str.substring(4).length()) {
-			list.add(str);
-			return list;
-		}else {
-			String substring2 = str.substring(bodyLength*2+4);
-			getBody(substring2);
-		}
-		return Lists.newArrayList();
-	}
 	
 	@Override
 	public void onReceive(Object message) throws Exception {

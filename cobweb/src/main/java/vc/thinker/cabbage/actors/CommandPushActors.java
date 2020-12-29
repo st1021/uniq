@@ -50,7 +50,7 @@ public class CommandPushActors extends UntypedActor{
 		case syn_server:
 //			tcpCommandPush.syn_server();
 			break;
-		case query_server:
+		case get_server:
 			tcpCommandPush.sendQueryServer(content.getCabinetId());
 			break;
 		default:

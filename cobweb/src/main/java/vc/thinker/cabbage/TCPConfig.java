@@ -58,7 +58,7 @@ public class TCPConfig {
 	}
 	
 	@Bean
-	public TcpCommandPush tcpCommandPush() {
+	public TcpCommandPush shareTcpCommonPush() {
 		switch (tcpAkkaReceive) {
 		case BoxConstants.BOX_TYPE_SHARE:
 			return new ShareTcpCommonPush();

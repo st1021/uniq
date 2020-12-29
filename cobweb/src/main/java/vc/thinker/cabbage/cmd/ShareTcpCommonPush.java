@@ -70,11 +70,6 @@ public class ShareTcpCommonPush implements TcpCommandPush {
 		resp[4] = 0x01;
 		System.arraycopy(cmd.getToken(), 0, resp, 5, 4);
 		resp[9] = 0x01;
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 		LOGGER.info("login resp:{}", HexUtils.toHexString(resp));
 		session.write(resp);
 	}
@@ -176,6 +171,7 @@ public class ShareTcpCommonPush implements TcpCommandPush {
 		resp[3] = vsn;
 		resp[4] = checkSum;
 		System.arraycopy(token, 0, resp, 5, 4);
+		LOGGER.info("boxId: {} ,send get server:{}", HexUtils.toHexString(resp));
 		session.write(resp);
 	}
 

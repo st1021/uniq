@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.alibaba.fastjson.JSON;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import vc.thinker.cabbage.CobwebApplication;
@@ -53,7 +55,7 @@ public class MessageNoticeService {
     	cabinetRemoteHandle.listener(CobwebApplication.serviceCode, poolNumber, new NoticeDelegate() {
 			@Override
 			public void handle(CabinetNoticeContent content) {
-				log.info("listener handle {}",content);
+				log.info("listener handle {}", JSON.toJSONString(content));
 				if(content.getNoticeTime() != null){
 					if(System.currentTimeMillis() - content.getNoticeTime().getTime() > commandExpiration){
 						log.error("command {} 已过期",content);
