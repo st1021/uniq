@@ -22,13 +22,10 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
 import akka.actor.ActorSystem;
 import vc.thinker.cabbage.core.config.DatabaseConfig;
 import vc.thinker.cabbage.core.config.DicConfig;
 import vc.thinker.cabbage.extension.SpringExtension;
-import vc.thinker.lbs.BaiduLbsBiz;
-import vc.thinker.lbs.LbsBiz;
 import vc.thinker.opensdk.powerbank.relink.RelinkOpenSDK;
 
 /**

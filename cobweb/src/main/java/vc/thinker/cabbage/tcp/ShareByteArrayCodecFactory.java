@@ -49,10 +49,13 @@ public class ShareByteArrayCodecFactory implements ProtocolCodecFactory {
 	}
 	
 	public static void main(String[] args) {
-		byte[] b = new byte[] { 0, 32 };
-		String hexString = HexUtils.toHexString(b);
-		int parseInt = Integer.parseInt(hexString, 16);
-		System.out.println(parseInt);
+			
+		String hexString = "000761010011223344";
+//		String hexString = HexUtils.toHexString(str);
+		int parseInt = Integer.parseInt(hexString.substring(0, 4), 16);
+		
+		System.out.println(hexString.substring(4).length() == parseInt*2);
+
 	}
 
 	
@@ -69,7 +72,11 @@ public class ShareByteArrayCodecFactory implements ProtocolCodecFactory {
 			byte[] packArr = new byte[len];
 			in.get(packArr, 0, len);
 			
-			if (0x00 == packArr[packArr.length-1]) {
+			String hexString = HexUtils.toHexString(packArr);
+			int parseInt = Integer.parseInt(hexString.substring(0, 4), 16);
+			String body = hexString.substring(4);
+			
+			if (parseInt*2 == body.length()) {
 				
 				out.write(packArr);
 
@@ -83,6 +90,7 @@ public class ShareByteArrayCodecFactory implements ProtocolCodecFactory {
 			}
 		}
 	}
+	
 
 	@Override
 	public ProtocolEncoder getEncoder(IoSession session) throws Exception {

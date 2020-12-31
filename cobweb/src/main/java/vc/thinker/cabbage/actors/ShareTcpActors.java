@@ -10,11 +10,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 
 import akka.actor.UntypedActor;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 import vc.thinker.cabbage.CobwebApplication;
 import vc.thinker.cabbage.beans.ShareCmd;
 import vc.thinker.cabbage.cmd.ShareCmdConstatns;
@@ -24,6 +27,7 @@ import vc.thinker.cabbage.se.OrderService;
 import vc.thinker.cabbage.se.PortableBatteryConstatns;
 import vc.thinker.cabbage.se.exception.CabinetNotFindException;
 import vc.thinker.cabbage.se.exception.CabinetStatusNotFindException;
+import vc.thinker.cabbage.se.exception.OrderNotFindException;
 import vc.thinker.cabbage.se.model.PortableBattery;
 import vc.thinker.cabbage.tcp.SessionStoreManager;
 import vc.thinker.cabbage.util.HexUtils;
@@ -39,12 +43,18 @@ import vc.thinker.cabbage.util.HexUtils;
 @Scope("prototype")
 public class ShareTcpActors extends UntypedActor {
 
+	
+	private static final String SHARE_TCP_MARK = "share_tcp_";
+	
 	private static final Logger LOGGER = LoggerFactory.getLogger(ShareTcpActors.class);
 
+	
+	@Autowired
+	private JedisPool jedisPool;
+	
 	public ShareTcpActors(IoSession session){
 		this.session = session;
 	}
-	
 	
 	private IoSession session;
 
@@ -105,7 +115,11 @@ public class ShareTcpActors extends UntypedActor {
 	 * @param cmd
 	 */
 	private void syncBattery(ShareCmd cmd) {
-		cabinetStatusService.syncBattery(cmd.getBoxId(), cmd.getRemainNum(), cmd.getPbList());
+		try {
+			cabinetStatusService.syncBattery(cmd.getBoxId(), cmd.getRemainNum(), cmd.getPbList());
+		} catch (CabinetNotFindException e) {
+			LOGGER.info("boxId:" + getBoxId() + "not found.");
+		}
 	}
 
 	/**
@@ -114,8 +128,16 @@ public class ShareTcpActors extends UntypedActor {
 	 * @param cmd
 	 */
 	private void returnBack(ShareCmd cmd) {
-		// 结束订单
-		orderService.cabinetEndOrder(cmd.getBoxId(), cmd.getPbId(), cmd.getSlot());
+		try {
+			// 结束订单
+			orderService.cabinetEndOrder(cmd.getBoxId(), cmd.getPbId(), cmd.getSlot());
+		} catch (CabinetNotFindException e) {
+			LOGGER.info("returnBack error:{}", e.getMessage());
+		} catch (OrderNotFindException e) {
+			LOGGER.info("returnBack error:{}", e.getMessage());
+		} finally {
+			shareTcpCommonPush.sendReturnBackResp(session, cmd.getSlot());
+		}
 	}
 
 	/**
@@ -143,16 +165,17 @@ public class ShareTcpActors extends UntypedActor {
 		System.arraycopy(msg, 5, token, 0, 4);
 		// 转成十六进制字符串
 		String orgmsg = HexUtils.toHexString(msg);
-		LOGGER.info("message from {}, {}", session.getRemoteAddress(), orgmsg);
-		
-		int bodyLength = Integer.parseInt(orgmsg.substring(0,4), 16);
+//		LOGGER.info("message from {}, {}", session.getRemoteAddress(), orgmsg);
 		
 		ShareCmd shareCmd = new ShareCmd();
-		shareCmd.setBoxId(orgmsg.substring(34, 56));
+		
 		shareCmd.setToken(token);
 		shareCmd.setCmd(orgmsg.substring(4, 6));
 		shareCmd.setVsn(msg[4]);
 		switch (shareCmd.getCmd()) {
+		case ShareCmdConstatns.login:
+			shareCmd.setBoxId(orgmsg.substring(34, 56));
+			break;
 		case ShareCmdConstatns.rent_confirm:
 			shareCmd.setSlot(orgmsg.substring(18, 20));
 			shareCmd.setResult(orgmsg.substring(20, 22).equals("01"));
@@ -187,6 +210,9 @@ public class ShareTcpActors extends UntypedActor {
 		default:
 			break;
 		}
+		if(StringUtils.isBlank(shareCmd.getBoxId())) {
+			shareCmd.setBoxId(getBoxId());
+		}
 		return shareCmd;
 	}
 	
@@ -216,6 +242,8 @@ public class ShareTcpActors extends UntypedActor {
 			// 更新充电贵的心跳时间
 			cabinetStatusService.heartbeat(boxId);
 		} catch (CabinetStatusNotFindException e) {
+			LOGGER.info("heart error:{}", e.getMessage());
+		}finally {
 			// 相应充电柜
 			shareTcpCommonPush.sendHeartResp(session, respBype);
 		}
@@ -228,6 +256,7 @@ public class ShareTcpActors extends UntypedActor {
 	 */
 	public void login(ShareCmd cmd) {
 		try {
+			setBoxId(cmd.getBoxId());
 			// 入库
 			cabinetStatusService.login(cmd.getBoxId(), CobwebApplication.serviceCode);
 		} catch (CabinetNotFindException e) {
@@ -236,6 +265,35 @@ public class ShareTcpActors extends UntypedActor {
 			// 响应设备
 			shareTcpCommonPush.sendLoginResp(session, cmd);
 		}
+	}
+	
+	
+	public String getBoxId() {
+		Jedis jedis = null;
+		try {
+			jedis = jedisPool.getResource();
+			return jedis.get(getRedisKey(session.getId()));
+		} finally {
+			if (jedis != null)
+				jedis.close();
+		}
+	}
+	public void setBoxId(String boxId) {
+		Jedis jedis = null;
+		try {
+			jedis = jedisPool.getResource();
+			jedis.set(getRedisKey(session.getId()), boxId);
+		} finally {
+			if (jedis != null)
+				jedis.close();
+		}
+	}
+	
+	public String getRedisKey(Long sessionId) {
+		StringBuffer sb = new StringBuffer();
+		sb.append(SHARE_TCP_MARK);
+		sb.append(sessionId);
+		return sb.toString();
 	}
 	
 }

@@ -174,6 +174,21 @@ public class ShareTcpCommonPush implements TcpCommandPush {
 		LOGGER.info("boxId: {} ,send get server:{}", HexUtils.toHexString(resp));
 		session.write(resp);
 	}
+	
+	public void sendReturnBackResp(IoSession session, String slot) {
+		byte[] resp = new byte[11];
+		resp[0] = 0x00;
+		resp[1] = 0x08;
+		resp[2] = 0x66;
+		resp[3] = vsn;
+		byte bSlot = (byte) (0xff & Integer.parseInt(slot));
+		resp[4] = bSlot;
+		System.arraycopy(token, 0, resp, 5, 4);
+		resp[9] = bSlot;
+		resp[10] = 0x01;
+		LOGGER.info("returnBack resp :{}", HexUtils.toHexString(resp));
+		session.write(resp);
+	}
 
 	/**
 	 * 获取CheckSum
@@ -277,6 +292,5 @@ public class ShareTcpCommonPush implements TcpCommandPush {
 //		System.out.println(HexUtils.toHexString(resp));
 
 	}
-
 
 }

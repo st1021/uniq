@@ -204,9 +204,7 @@ public class CabinetStatusService {
 		// 存在校验
 		CabinetStatus status = cabinetStatusDao.findByCabinetCode(boxId);
 		if (null == status) {
-			LOGGER.info("boxId:{} not found.", boxId);
-			
-			return;
+			 throw new CabinetNotFindException("boxId:"+boxId+"not found.");
 		}
 		// 更新充电柜
 		status.setBatteryType4Count(pbList.size());

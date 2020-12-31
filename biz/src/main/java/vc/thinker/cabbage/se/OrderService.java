@@ -519,13 +519,15 @@ public class OrderService {
 	public void cabinetEndOrder(String boxId, String pbId, String slot) {
 		CabinetBO cabinet = cabinetDao.findByCabinetCode(boxId);
 		if (null == cabinet) {
-			log.info("boxId:{} not found.", boxId);
-			return;
+			throw new CabinetNotFindException("boxId:" + boxId + "not found.");
 		}
-		
+
 		OrderBO order = orderDao.getByDongPbId(pbId);
+		if(null == order) {
+			throw new OrderNotFindException("order not found.");
+		}
 		order.setReturnChannel(Integer.parseInt(slot));
-		endOrder(order, OrderConstants.RETURN_TYPE_CABINET,cabinet.getId());
+		endOrder(order, OrderConstants.RETURN_TYPE_CABINET, cabinet.getId());
 	}
 	
 	/**
