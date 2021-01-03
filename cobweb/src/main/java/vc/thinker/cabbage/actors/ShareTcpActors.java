@@ -13,12 +13,14 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 
 import akka.actor.UntypedActor;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import vc.thinker.cabbage.CobwebApplication;
+import vc.thinker.cabbage.beans.ServerInfo;
 import vc.thinker.cabbage.beans.ShareCmd;
 import vc.thinker.cabbage.cmd.ShareCmdConstatns;
 import vc.thinker.cabbage.cmd.ShareTcpCommonPush;
@@ -100,6 +102,9 @@ public class ShareTcpActors extends UntypedActor {
 			LOGGER.info("boxId:{}, return_back", cmd.getBoxId());
 			returnBack(cmd);
 			break;
+		case ShareCmdConstatns.get_server:
+			LOGGER.info("boxId:{} 上报服务器地址：{},{},{}", cmd.getBoxId(), cmd.getServer().getIp(), cmd.getServer().getPort(), cmd.getServer().getHearbet());
+			break;
 		default:
 			break;
 		}
@@ -174,7 +179,7 @@ public class ShareTcpActors extends UntypedActor {
 		shareCmd.setVsn(msg[4]);
 		switch (shareCmd.getCmd()) {
 		case ShareCmdConstatns.login:
-			shareCmd.setBoxId(orgmsg.substring(34, 56));
+			shareCmd.setBoxId(hex2Ascii(orgmsg.substring(34, 66)));
 			break;
 		case ShareCmdConstatns.rent_confirm:
 			shareCmd.setSlot(orgmsg.substring(18, 20));
@@ -204,8 +209,12 @@ public class ShareTcpActors extends UntypedActor {
 					pb.setCreateTime(new Date());
 					pbList.add(pb);
 				}
+				LOGGER.info("pbList:{}", JSON.toJSONString(pbList));
 				shareCmd.setPbList(pbList);
 			}
+			break;
+		case ShareCmdConstatns.get_server:
+			shareCmd.setServer(getServerInfo(orgmsg));
 			break;
 		default:
 			break;
@@ -216,22 +225,74 @@ public class ShareTcpActors extends UntypedActor {
 		return shareCmd;
 	}
 	
+	public static void main(String[] args) {
+//		String orgmsg = "001f6a013f11223344000e3132302e32362e3234312e393800000537303032001e";
+//		ServerInfo serverInfo = getServerInfo(orgmsg);
+//		System.out.println(serverInfo.getIp());
+//		System.out.println(serverInfo.getPort());
+//		System.out.println(serverInfo.getHearbet());
+		
+		String string = "485943420b030071";
+		String hex2Ascii = hex2Ascii(string);
+		System.out.println("1111"+ hex2Ascii+"22222");
+	}
+
+	private static ServerInfo getServerInfo(String orgmsg) {
+
+		ServerInfo serverInfo = new ServerInfo();
+
+		int ipByte = Integer.parseInt(orgmsg.substring(18, 22), 16);
+		int ipEnd = 22 + ipByte * 2;
+
+		String ipHexStr = orgmsg.substring(22, ipEnd);
+
+		String ip = hex2Ascii(ipHexStr.substring(0, ipHexStr.length() - 2));
+		serverInfo.setIp(ip);
+
+		int portByte = Integer.parseInt(orgmsg.substring(ipEnd, ipEnd + 4), 16);
+		String portHexStr = orgmsg.substring(ipEnd + 4, ipEnd + 4 + portByte * 2);
+		String port = hex2Ascii(portHexStr.substring(0, portHexStr.length() - 2));
+		serverInfo.setPort(port);
+
+		int hearbet = Integer.parseInt(orgmsg.substring(orgmsg.length() - 2, orgmsg.length()), 16);
+		serverInfo.setHearbet(hearbet);
+
+		return serverInfo;
+	}
+	
 	private Integer getElectricityByLevel(String level) {
 		switch (level) {
-		case "0":
+		case "00":
 			return 20;
-		case "1":
+		case "01":
 			return 40;
-		case "2":
+		case "02":
 			return 60;
-		case "3":
+		case "03":
 			return 80;
-		case "4":
+		case "04":
 			return 100;
 		default:
 			return 0;
 		}
 	}
+	
+	/**
+	 * str to ASCII
+	 * 
+	 * @param str
+	 * @return
+	 */
+	public static String hex2Ascii(String str) {
+		StringBuffer sBuffer = new StringBuffer();
+		for (int i = 0; i < str.length(); i += 2) {
+			String substring = str.substring(i, i + 2);
+			int parseInt2 = Integer.parseInt(substring, 16);
+			sBuffer.append((char) parseInt2);
+		}
+		return sBuffer.toString();
+	}
+
 	/**
 	 * 心跳
 	 * 

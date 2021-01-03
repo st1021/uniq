@@ -26,6 +26,8 @@ public class ShareCmd {
 	private Integer remainNum;
 	List<PortableBattery> pbList;
 	
+	private ServerInfo server;
+	
 	public String getBoxId() {
 		return boxId;
 	}
@@ -80,5 +82,10 @@ public class ShareCmd {
 	public void setPbList(List<PortableBattery> pbList) {
 		this.pbList = pbList;
 	}
-	
+	public ServerInfo getServer() {
+		return server;
+	}
+	public void setServer(ServerInfo server) {
+		this.server = server;
+	}
 }

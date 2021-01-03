@@ -157,6 +157,21 @@ public class CabinetRemoteHandle {
 		messageHandler.sendMessage(cs.getServiceCode(), JSON.toJSONString(lockNoticeContent));
 	}
 	
+	public void synServer(String sysCode, String ip, String port, Integer heartbeat) {
+		CabinetStatus cs = cabinetStatusDao.findBySysCode(sysCode);
+		if (cs == null) {
+			throw new CabinetStatusNotFindException("sysCode: "+sysCode+" not found.");
+		}
+		
+		CabinetNoticeContent lockNoticeContent = new CabinetNoticeContent();
+		lockNoticeContent.setNoticeType(NoticeType.syn_server);
+		lockNoticeContent.setCabinetId(cs.getCabinetCode());
+		lockNoticeContent.setIp(ip);
+		lockNoticeContent.setPort(port);
+		lockNoticeContent.setHeartbeat(heartbeat);
+		messageHandler.sendMessage(cs.getServiceCode(), JSON.toJSONString(lockNoticeContent));
+	}
+
 	/**
 	 * 远程监听
 	 * @param channl
@@ -207,6 +222,12 @@ public class CabinetRemoteHandle {
 		private Date noticeTime;
 		
 		private Integer second;
+		
+		private String ip;
+		
+		private String port;
+		
+		private Integer heartbeat;
 		
 		public String getCabinetId() {
 			return cabinetId;
@@ -263,6 +284,31 @@ public class CabinetRemoteHandle {
 		public void setSecond(Integer second) {
 			this.second = second;
 		}
+
+		public String getIp() {
+			return ip;
+		}
+
+		public void setIp(String ip) {
+			this.ip = ip;
+		}
+
+		public String getPort() {
+			return port;
+		}
+
+		public void setPort(String port) {
+			this.port = port;
+		}
+
+		public Integer getHeartbeat() {
+			return heartbeat;
+		}
+
+		public void setHeartbeat(Integer heartbeat) {
+			this.heartbeat = heartbeat;
+		}
+
 	}
 
 }

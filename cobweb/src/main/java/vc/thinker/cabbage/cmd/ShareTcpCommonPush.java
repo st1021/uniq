@@ -1,11 +1,15 @@
 package vc.thinker.cabbage.cmd;
 
 import org.apache.mina.core.session.IoSession;
+import org.apache.xmlbeans.impl.common.SystemCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import scala.annotation.meta.beanGetter;
 import vc.thinker.cabbage.beans.ShareCmd;
 import vc.thinker.cabbage.tcp.SessionStoreManager;
+import vc.thinker.cabbage.user.model.VipPayLog;
 import vc.thinker.cabbage.util.HexUtils;
 
 /**
@@ -48,9 +52,23 @@ public class ShareTcpCommonPush implements TcpCommandPush {
 	}
 
 	@Override
-	public void sendSysOut(String cabinetId, String channle) {
-		// TODO Auto-generated method stub
-
+	public void sendSysOut(String boxId, String channle) {
+		IoSession session = sessionStoreManager.getSession(boxId);
+		if (null == session || !session.isActive()) {
+			LOGGER.info("boxId:{} offline. ", boxId);
+			return;
+		}
+		// 组装请求
+		byte[] resp = new byte[10];
+		resp[0] = 0x00;
+		resp[1] = 0x08;
+		resp[2] = (byte) 0x80;
+		resp[3] = vsn;
+		resp[4] = checkSum;
+		System.arraycopy(token, 0, resp, 5, 4);
+		resp[9] = (byte) (Integer.parseInt(channle) & 0xFF);
+		LOGGER.info("boxId:{},sys_out:{}", boxId, HexUtils.toHexString(resp));
+		session.write(resp);
 	}
 
 	
@@ -81,7 +99,7 @@ public class ShareTcpCommonPush implements TcpCommandPush {
 	 * @param msg
 	 */
 	public void sendHeartResp(IoSession session, byte[] msg) {
-		LOGGER.info("login resp:{}", HexUtils.toHexString(msg));
+		LOGGER.info("heart resp:{}", HexUtils.toHexString(msg));
 		session.write(msg);
 	}
 	
@@ -128,11 +146,12 @@ public class ShareTcpCommonPush implements TcpCommandPush {
 		}
 		byte[] resp = new byte[9];
 		resp[0] = 0x00;
-		resp[1] = 0x08;
+		resp[1] = 0x07;
 		resp[2] = 0x64;
 		resp[3] = vsn;
 		resp[4] = checkSum;
 		System.arraycopy(token, 0, resp, 5, 4);
+		LOGGER.info("sendSync:{}", HexUtils.toHexString(resp));
 		session.write(resp);
 	}
 
@@ -152,6 +171,7 @@ public class ShareTcpCommonPush implements TcpCommandPush {
 		resp[4] = checkSum;
 		System.arraycopy(token, 0, resp, 5, 4);
 		resp[9] = (byte) (Integer.parseInt(cable) & 0xFF);
+		LOGGER.info("borrow:{}", HexUtils.toHexString(resp));
 		session.write(resp);
 	}
 	
@@ -171,14 +191,14 @@ public class ShareTcpCommonPush implements TcpCommandPush {
 		resp[3] = vsn;
 		resp[4] = checkSum;
 		System.arraycopy(token, 0, resp, 5, 4);
-		LOGGER.info("boxId: {} ,send get server:{}", HexUtils.toHexString(resp));
+		LOGGER.info("boxId: {} ,send get server:{}", boxId, HexUtils.toHexString(resp));
 		session.write(resp);
 	}
 	
 	public void sendReturnBackResp(IoSession session, String slot) {
 		byte[] resp = new byte[11];
 		resp[0] = 0x00;
-		resp[1] = 0x08;
+		resp[1] = 0x09;
 		resp[2] = 0x66;
 		resp[3] = vsn;
 		byte bSlot = (byte) (0xff & Integer.parseInt(slot));
@@ -190,6 +210,47 @@ public class ShareTcpCommonPush implements TcpCommandPush {
 		session.write(resp);
 	}
 
+	
+	public void synServer(String boxId, String ip, String port, Integer heartbeat) {
+		IoSession session = sessionStoreManager.getSession(boxId);
+		if (null == session || !session.isActive()) {
+			LOGGER.info("boxId:{} offline. ", boxId);
+			return;
+		}
+		
+		byte[] ipBytes = str2ascii(ip);
+		byte[] portBytes = str2ascii(port);
+		
+		int length = 9 + 2 + ipBytes.length + 2 + portBytes.length + 1;
+		System.out.println(length);
+		
+		byte[] int2byte = int2byte(length-2);
+		
+		byte[] resp = new byte[length];
+		System.arraycopy(int2byte, 0, resp, 0, 2);
+		//Command
+		resp[2] = 0x63;
+		//VSN
+		resp[3] = vsn;
+		// CheckSum
+		resp[4] = checkSum;
+		// Toke
+		System.arraycopy(token, 0, resp, 5, 4);
+		
+		byte[] ipLength = int2byte(ipBytes.length);
+		System.arraycopy(ipLength, 0, resp, 9, 2);
+		System.arraycopy(ipBytes, 0, resp, 11, ipBytes.length);
+		
+		byte[] portLength = int2byte(portBytes.length);
+		System.arraycopy(portLength, 0, resp, 11+ipBytes.length, 2);
+		System.arraycopy(portBytes, 0, resp, 11+ipBytes.length+2, portBytes.length);
+		
+		resp[resp.length-1] = int2byte(heartbeat)[1];
+		
+		LOGGER.info("synServer resp :{}", HexUtils.toHexString(resp));
+		session.write(resp);
+	}
+	
 	/**
 	 * 获取CheckSum
 	 * 
@@ -239,7 +300,33 @@ public class ShareTcpCommonPush implements TcpCommandPush {
 		return str.length() == 2 || str.length() == 4 ? str : new StringBuffer().append("0").append(str).toString();
 	}
 
+	
+	private static byte[] str2ascii(String str) {
+		byte[] bytes = new byte[str.length() + 1];
+		for (int i = 0; i < str.length(); i++) {
+			bytes[i] = (byte) str.charAt(i);
+		}
+		bytes[bytes.length - 1] = 0x00;
+		return bytes;
+	}
+	
 	public static void main(String[] args) {
+		
+		byte[] str2ascii = str2ascii("485943420b030075");
+		
+//		String str1 = "120.26.241.98";
+//		byte[] str2asci1 = str2ascii(str1);
+//		System.out.println(HexUtils.toHexString(str2asci1));
+//
+//		String str2 = "7002";
+//		byte[] str2asci2 = str2ascii(str2);
+//		System.out.println(HexUtils.toHexString(str2asci2));
+//
+//		Integer str3 = 30;
+//		byte[] int2byte = int2byte(str3);
+//		System.out.println(HexUtils.toHexString(int2byte));
+//		
+//		synServer("11", "120.26.241.98", "7002", 30);
 
 //		String hexString = Integer.toHexString(255);
 //		System.out.println(hexString);

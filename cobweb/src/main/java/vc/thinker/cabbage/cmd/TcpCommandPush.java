@@ -58,5 +58,15 @@ public interface TcpCommandPush {
 	 * @param cabientId
 	 */
 	void sendQueryServer(String cabientId);
+
+	/**
+	 * 同步服务器信息
+	 * 
+	 * @param cabinetId
+	 * @param ip
+	 * @param port
+	 * @param heartbeat
+	 */
+	public void synServer(String cabinetId, String ip, String port, Integer heartbeat);
 	
 }

@@ -223,4 +223,10 @@ public class YunchongbaiTCPCommandPush implements TcpCommandPush {
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	public void synServer(String cabinetId, String ip, String port, Integer heartbeat) {
+		// TODO Auto-generated method stub
+		
+	}
 }

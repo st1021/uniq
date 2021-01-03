@@ -48,18 +48,6 @@ public class ShareByteArrayCodecFactory implements ProtocolCodecFactory {
 		}
 	}
 	
-	public static void main(String[] args) {
-			
-		String hexString = "000761010011223344";
-//		String hexString = HexUtils.toHexString(str);
-		int parseInt = Integer.parseInt(hexString.substring(0, 4), 16);
-		
-		System.out.println(hexString.substring(4).length() == parseInt*2);
-
-	}
-
-	
-	
 	public class ByteArrayDecoder extends CumulativeProtocolDecoder {
 
 		@Override
@@ -73,6 +61,7 @@ public class ShareByteArrayCodecFactory implements ProtocolCodecFactory {
 			in.get(packArr, 0, len);
 			
 			String hexString = HexUtils.toHexString(packArr);
+			LOGGER.info("decode接收命令:{}", hexString);
 			int parseInt = Integer.parseInt(hexString.substring(0, 4), 16);
 			String body = hexString.substring(4);
 			

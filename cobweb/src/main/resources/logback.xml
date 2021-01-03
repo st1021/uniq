@@ -31,8 +31,8 @@
 
 	<logger name="com.relayrides.pushy" level="DEBUG" />
 	<!-- <logger name="org.eclipse.paho.client.mqttv3" level="DEBUG" /> -->
-	<logger name="vc.thinker" level="DEBUG" />
-	<logger name="org.mybatis" level="DEBUG"/>   
+	<!-- <logger name="vc.thinker" level="DEBUG" />
+	<logger name="org.mybatis" level="DEBUG"/>  -->  
 	<logger name="org.springframework.data" level="INFO" />
 	<!-- <logger name="org.springframework.security" level="DEBUG"/> -->
 
