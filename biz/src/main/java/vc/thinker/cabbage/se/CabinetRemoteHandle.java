@@ -34,16 +34,16 @@ public class CabinetRemoteHandle {
 	 */
 	
 	public void out(String boxId,String orderCode,String cable){
-		CabinetStatus cs = cabinetStatusDao.findByCabinetCode(boxId);
-		if(cs == null){
-			throw new CabinetStatusNotFindException("boxId: " + boxId + " not found.");
-		}
+//		CabinetStatus cs = cabinetStatusDao.findBySysCode(sysCode);
+//		if(cs == null){
+//			throw new CabinetStatusNotFindException("sysCode: " + sysCode + " not found.");
+//		}
 		CabinetNoticeContent lockNoticeContent=new CabinetNoticeContent();
 		lockNoticeContent.setNoticeType(NoticeType.out);
 		lockNoticeContent.setCabinetId(boxId);
 		lockNoticeContent.setOrderCode(orderCode);
 		lockNoticeContent.setCable(cable);
-		messageHandler.sendMessage(cs.getServiceCode(),JSON.toJSONString(lockNoticeContent));
+		messageHandler.sendMessage(orderCode,JSON.toJSONString(lockNoticeContent));
 	}
 	
 	
@@ -52,14 +52,14 @@ public class CabinetRemoteHandle {
 	 * 系统借出
 	 * @param umMachineCode
 	 */
-	public void sysOut(String boxId, Integer slot){
-		CabinetStatus cs = cabinetStatusDao.findByCabinetCode(boxId);
+	public void sysOut(String sysCode, Integer slot){
+		CabinetStatus cs = cabinetStatusDao.findBySysCode(sysCode);
 		if(cs == null){
-			throw new CabinetStatusNotFindException("boxId: " + boxId + " not found.");
+			throw new CabinetStatusNotFindException("boxId: " + sysCode + " not found.");
 		}
 		CabinetNoticeContent lockNoticeContent=new CabinetNoticeContent();
 		lockNoticeContent.setNoticeType(NoticeType.sys_out);
-		lockNoticeContent.setCabinetId(boxId);
+		lockNoticeContent.setCabinetId(cs.getCabinetCode());
 		lockNoticeContent.setChannel(slot);
 		messageHandler.sendMessage(cs.getServiceCode(),JSON.toJSONString(lockNoticeContent));
 	}
@@ -68,26 +68,22 @@ public class CabinetRemoteHandle {
 	 * 同步
 	 * @param umMachineCode
 	 */
-	public void sync(String boxId){
-		CabinetStatus cs = cabinetStatusDao.findByCabinetCode(boxId);
+	public void sync(String sysCode){
+		CabinetStatus cs = cabinetStatusDao.findBySysCode(sysCode);
 		if(cs == null){
-			throw new CabinetStatusNotFindException("boxId: " + boxId + " not found.");
+			throw new CabinetStatusNotFindException("boxId: " + sysCode + " not found.");
 		}
 		CabinetNoticeContent lockNoticeContent=new CabinetNoticeContent();
 		lockNoticeContent.setNoticeType(NoticeType.sync);
-		lockNoticeContent.setCabinetId(boxId);
+		lockNoticeContent.setCabinetId(cs.getCabinetCode());
 		messageHandler.sendMessage(cs.getServiceCode(),JSON.toJSONString(lockNoticeContent));
 	}
 	
-	public void synchronizePb(String cabinetCode) {
-		CabinetStatus cs = cabinetStatusDao.findByCabinetCode(cabinetCode);
-		if (null == cs) {
-			return;
-		}
+	public void synchronizePb(String cabinetCode, String serviceCode) {
 		CabinetNoticeContent lockNoticeContent = new CabinetNoticeContent();
 		lockNoticeContent.setNoticeType(NoticeType.sync);
-		lockNoticeContent.setCabinetId(cs.getCabinetCode());
-		messageHandler.sendMessage(cs.getServiceCode(), JSON.toJSONString(lockNoticeContent));
+		lockNoticeContent.setCabinetId(cabinetCode);
+		messageHandler.sendMessage(serviceCode, JSON.toJSONString(lockNoticeContent));
 	}
 
 	/**
@@ -146,14 +142,14 @@ public class CabinetRemoteHandle {
 	 * 
 	 * @param boxId
 	 */
-	public void getServerIp(String boxId) {
-		CabinetStatus cs = cabinetStatusDao.findByCabinetCode(boxId);
+	public void getServerIp(String sysCode) {
+		CabinetStatus cs = cabinetStatusDao.findBySysCode(sysCode);
 		if (cs == null) {
-			throw new CabinetStatusNotFindException("boxId: "+boxId+" not found.");
+			throw new CabinetStatusNotFindException("boxId: "+sysCode+" not found.");
 		}
 		CabinetNoticeContent lockNoticeContent = new CabinetNoticeContent();
 		lockNoticeContent.setNoticeType(NoticeType.get_server);
-		lockNoticeContent.setCabinetId(boxId);
+		lockNoticeContent.setCabinetId(cs.getCabinetCode());
 		messageHandler.sendMessage(cs.getServiceCode(), JSON.toJSONString(lockNoticeContent));
 	}
 	

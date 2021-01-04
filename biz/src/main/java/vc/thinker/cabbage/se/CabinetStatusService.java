@@ -209,9 +209,9 @@ public class CabinetStatusService {
 		// 更新充电柜
 		status.setBatteryType4Count(pbList.size());
 		status.setLastUpdateTime(new Date());
-		status.setIdlePositionNum(9 - pbList.size());
-		status.setExistPositionNum(pbList.size());
-//		status.setPositionTotal(12);
+		status.setIdlePositionNum(status.getPositionTotal() - remainNum);
+		status.setExistPositionNum(remainNum);
+		status.setBatteryType4Count(remainNum);
 		status.setChannelStatusList(null);
 		cabinetStatusDao.save(status);
 		// 更新充电宝

@@ -156,4 +156,16 @@ public class PortableBatteryDao {
 	public List<CountStatsBO> statsPb(StatsVO vo) {
 		return mapper.statsPb(vo);
 	}
+
+
+	public PortableBatteryBO getOneByCid(Long cid) {
+		PortableBatteryExample example = new PortableBatteryExample();
+		example.createCriteria().andCabinetIdEqualTo(cid)
+				.andLocationTypeEqualTo(PortableBatteryConstatns.LOCATION_TYPE_IN_CABINET)
+				.andElectricityGreaterThanOrEqualTo(60);
+		example.setLimit(1);
+		example.setOrderByClause("electricity desc");
+		List<PortableBatteryBO> list = mapper.selectByExample(example);
+		return list.isEmpty() ? null : list.get(0);
+	}
 }

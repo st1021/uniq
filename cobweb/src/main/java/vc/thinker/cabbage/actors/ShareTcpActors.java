@@ -231,11 +231,24 @@ public class ShareTcpActors extends UntypedActor {
 //		System.out.println(serverInfo.getIp());
 //		System.out.println(serverInfo.getPort());
 //		System.out.println(serverInfo.getHearbet());
-		
-		String string = "485943420b030071";
+//		String string = "48594341303932303132303030303031";
+		String string = "524c31417c000041";
 		String hex2Ascii = hex2Ascii(string);
-		System.out.println("1111"+ hex2Ascii+"22222");
+		System.out.println(hex2Ascii);
+		
+//		String string2 = "0b030071";
+//		int parseInt2 = Integer.parseInt("0b", 16);
+////		char a = (char) parseInt2;
+//		System.out.println("parseInt2="+ parseInt2);
+//		int parseInt3 = Integer.parseInt("03", 16);
+//		char b = (char) parseInt3;
+//		System.out.println("parseInt3="+ parseInt3);
+//		int parseInt4 = Integer.parseInt("71", 16);
+////		char c = (char) parseInt4;
+//		System.out.println("parseInt4="+ parseInt4);
+		
 	}
+		
 
 	private static ServerInfo getServerInfo(String orgmsg) {
 

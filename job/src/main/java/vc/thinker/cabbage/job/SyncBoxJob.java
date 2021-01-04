@@ -34,7 +34,7 @@ public class SyncBoxJob {
 		LOGGER.info("开始执行充电柜数据同步");
 		List<CabinetStatus> onlines = cabinetStatusService.listOnline();
 		onlines.forEach(o->{
-			cabinetRemoteHandle.synchronizePb(o.getCabinetCode());
+			cabinetRemoteHandle.synchronizePb(o.getCabinetCode(),o.getServiceCode());
 		});
 	}
 	

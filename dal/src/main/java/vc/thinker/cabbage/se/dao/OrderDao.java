@@ -288,4 +288,15 @@ public class OrderDao {
 		List<OrderBO> list = mapper.selectByExample(example);
 		return list.isEmpty() ? null : list.get(0);
 	}
+
+	public OrderBO getOneByPbCode(String pbCode) {
+		OrderExample example = new OrderExample();
+		example.createCriteria().andPbCodeEqualTo(pbCode).andStatusEqualTo(OrderConstants.ORDER_STATUS_10)
+				.andIsDeletedEqualTo(false);
+		example.setLimit(1);
+		example.setOrderByClause("create_time desc");
+
+		List<OrderBO> list = mapper.selectByExample(example);
+		return list.isEmpty() ? null : list.get(0);
+	}
 }

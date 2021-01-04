@@ -33,7 +33,7 @@ import vc.thinker.opensdk.powerbank.relink.RelinkOpenSDK;
 import vc.thinker.opensdk.powerbank.relink.RelinkPowerbank;
 import vc.thinker.opensdk.powerbank.relink.RelinkSlot;
 
-@Component
+//@Component
 public class RelinkSyncStatusJob {
 	private static final Logger log = LoggerFactory.getLogger(RelinkSyncStatusJob.class);
 

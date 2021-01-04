@@ -106,8 +106,8 @@ public class OrderService {
 	@Autowired
 	private PortableBatteryDao portableBatteryDao;
 	
-	@Autowired
 	@Lazy
+	@Autowired
 	private CabinetRemoteHandle cabinetRemoteHandle;
 	
 	@Autowired
@@ -211,60 +211,67 @@ public class OrderService {
 	 * @return
 	 */
 	@Transactional(readOnly=false)
-	public Order createOrder(Long uid,String sysCode,String batteryType,String clientSource){
-		//验证member
-		MemberBO member=memberDao.findOne(uid);
+	public Order createOrder(Long uid, String sysCode, String batteryType, String clientSource) {
+		// 验证member
+		MemberBO member = memberDao.findOne(uid);
 		validateMember(member);
-		
-		CabinetBO cabinet=cabinetDao.findBySysCode(sysCode);
-		if(cabinet == null){
+
+		CabinetBO cabinet = cabinetDao.findBySysCode(sysCode);
+		if (cabinet == null) {
 			throw new CabinetNotFindException("not find");
 		}
-		SellerBO seller=sellerDao.findOne(cabinet.getSellerId());
-		if(!CommonConstants.SELLER_STATUS_NORMAL.equals(seller.getStatus())){
+		SellerBO seller = sellerDao.findOne(cabinet.getSellerId());
+		if (!CommonConstants.SELLER_STATUS_NORMAL.equals(seller.getStatus())) {
 			throw new SellerLockedException("Seller locked");
 		}
-		
-		//检查用户有没有没结算的行程
+
+		// 检查用户有没有没结算的行程
 		List<OrderBO> notEndList = orderDao.findUserNotEndOrder(uid);
-		if(notEndList!=null&&notEndList.size()>0){
+		if (notEndList != null && notEndList.size() > 0) {
 			throw new UnfinishedOrdersExceptiion("Unfinished orders");
 		}
-		
-		CabinetStatus cs=cabinetStatusDao.findByCid(cabinet.getId());
-		if(cs == null){
+
+		CabinetStatus cs = cabinetStatusDao.findByCid(cabinet.getId());
+		if (cs == null) {
 			throw new CabinetStatusNotFindException("Cabinet Status Not Find");
 		}
-		
-		if(!cabinetStatusDao.checkIsOnline(cs)){
+
+		if (!cs.getOnline()) {
 			throw new CabinetIsOfflineException("The device is offline. Please try again later");
 		}
-		//判断电池数量是否够
-		int batteryCount=0;
-		switch (batteryType) {
-		case CabinetConstants.BATTERY_TYPE_2:
-			batteryCount=cs.getBatteryType2Count();
-			break;
-		case CabinetConstants.BATTERY_TYPE_3:
-			batteryCount=cs.getBatteryType3Count();
-			break;
-		case CabinetConstants.BATTERY_TYPE_4:
-			batteryCount=cs.getBatteryType4Count();
-			break;
-		}
-		if(batteryCount <= 0){
+		// 判断电池数量是否够
+		int batteryCount = cs.getBatteryType4Count();
+//		switch (batteryType) {
+//		case CabinetConstants.BATTERY_TYPE_2:
+//			batteryCount=cs.getBatteryType2Count();
+//			break;
+//		case CabinetConstants.BATTERY_TYPE_3:
+//			batteryCount=cs.getBatteryType3Count();
+//			break;
+//		case CabinetConstants.BATTERY_TYPE_4:
+//			batteryCount=cs.getBatteryType4Count();
+//			break;
+//		}
+		if (batteryCount <= 0) {
 			throw new BatteryIsNotEnoughExceptiion();
 		}
-		
+
+		PortableBatteryBO pb = portableBatteryDao.getOneByCid(cs.getCid());
+		if (null == pb) {
+			throw new BatteryIsNotEnoughExceptiion();
+		}
+
 		// 创建订单主体记录
-		Order order = this.createOrder(member, cabinet, seller,clientSource);
-		
+		Order order = this.createOrder(member, cabinet, seller, clientSource, pb.getId(), pb.getPortableBatteryCode(),
+				pb.getCabinetChannel());
+
+		log.info("cabinetRemoteHandle:{},租借充电宝事件:{},{},{}", cabinetRemoteHandle, cs.getCabinetCode(),
+				pb.getCabinetChannel(), cs.getServiceCode());
+		cabinetRemoteHandle.out(cs.getCabinetCode(), cs.getServiceCode(), String.valueOf(pb.getCabinetChannel()));
 		
 //		long cabinetType = cabinet.getTypeId();
 		/**
-		 * 1.RELINK的设备通过http与iot中间件平台通信；
-		 * 2.FTJ/YCB的设备，异步触发tcp通知再等待机器上报命令；
-		 * 3.YCBB设备
+		 * 1.RELINK的设备通过http与iot中间件平台通信； 2.FTJ/YCB的设备，异步触发tcp通知再等待机器上报命令； 3.YCBB设备
 		 */
 //		if (cabinetType == CabinetTypeEnum.RELINK.getCode()
 //			    || cabinetType == CabinetTypeEnum.RELINKB.getCode()
@@ -279,24 +286,30 @@ public class OrderService {
 //			event.order=order;
 //			publisher.publishEvent(event);
 //		} else {
-			OutBatteryEvent event=new OutBatteryEvent();
-			event.batteryType = batteryType;
-			event.order=order;
-			publisher.publishEvent(event);
+//			OutBatteryEvent event=new OutBatteryEvent();
+//			event.boxId = cs.getCabinetCode();
+//			event.channel = pb.getCabinetChannel();
+//			event.serviceCode = cs.getServiceCode();
+//			publisher.publishEvent(event);
+		
+
 //		}
-		return order; 
+		return order;
 	}
  
 	/**
 	 * 1、@TransactionalEventListener控制event事件的处理方式
 	 * 2、@Async异步线程处理
 	 * @param event
+	 * @throws InterruptedException 
 	 */
 	@TransactionalEventListener()
 	@Async 
-	private void outBattery(OutBatteryEvent event){
-		cabinetRemoteHandle.out(event.order.getBorrowSysCode()
-				,event.order.getOrderCode(), event.batteryType);
+	private void outBattery(OutBatteryEvent event) throws InterruptedException{
+		Thread.sleep(10000);
+		log.info("租借充电宝事件:{},{},{}", event.boxId, event.channel, event.serviceCode);
+		log.info("cabinetRemoteHandle:{}",cabinetRemoteHandle);
+		cabinetRemoteHandle.out(event.boxId, event.serviceCode, String.valueOf(event.channel));
 	}
 	
 	/**
@@ -331,7 +344,7 @@ public class OrderService {
 	 * @param agent
 	 * @return
 	 */
-	private Order createOrder(MemberBO member,CabinetBO cabinet,SellerBO seller,String clientSource){
+	private Order createOrder(MemberBO member,CabinetBO cabinet,SellerBO seller,String clientSource, Long pbId, String pbCode,Integer channel){
 		
 		//将开锁中的行程设置为失败
 		orderDao.updateOrderFail(member.getUid());
@@ -355,6 +368,9 @@ public class OrderService {
 		order.setClientSource(clientSource);
 		order.setStatus(OrderConstants.ORDER_STATUS_10);//开锁中
 		order.setPayType(OrderConstants.PAY_TYPE_BALANCE);
+		order.setPbId(pbId);
+		order.setPbCode(pbCode);
+		order.setBorrowChannel(channel);
 		
 		orderDao.save(order);
 		
@@ -401,33 +417,32 @@ public class OrderService {
 	 * @param pbId
 	 */
 	public void beginOrder(String boxId, String slot, String pbId) {
-		CabinetBO cabinet = cabinetDao.findByCabinetCode(boxId);
-		if (null == cabinet) {
-			log.info("boxId:{} not found.", boxId);
-			return;
-		}
-
-		OrderBO order = orderDao.getBySysCodeAndSlot(cabinet.getSysCode(), Integer.parseInt(slot));
-		if (null == order) {
-			log.info("boxId:{} 订单未找到.", boxId);
-			return;
-		}
 
 		PortableBatteryBO pb = portableBatteryDao.findByCode(pbId);
 		if (pb == null) {
-			log.info("boxId:{}, pbId:{} not found", boxId, pbId);
+			log.info("pbId:{} pb not found.", pbId);
 			return;
+		}
+		
+		OrderBO order = orderDao.getOneByPbCode(pbId);
+		if(null == order) {
+			log.info("pbId:{} order not found.", pbId);
 		}
 
 		// 更新工单状态
 		OrderBO upOrder = new OrderBO();
 		upOrder.setId(order.getId());
 		upOrder.setBeginTime(new Date());
-		upOrder.setPbCode(boxId);
-		upOrder.setPbId(pb.getId());
 		upOrder.setStatus(OrderConstants.ORDER_STATUS_30);
 		orderDao.save(upOrder);
-
+		
+		// 更新充电宝的状态
+		PortableBatteryBO upPb = new PortableBatteryBO();
+		upPb.setId(pb.getId());
+		upPb.setLocationType(PortableBatteryConstatns.LOCATION_TYPE_IN_USE);
+		upPb.setUpdateTime(new Date());
+		portableBatteryDao.update(upPb);
+		
 		// 如果多个订单设置其它订单失败
 		orderDao.updateOrderFail(order.getUid());
 
@@ -1111,6 +1126,9 @@ public class OrderService {
 	public static class OutBatteryEvent{
 		private Order order;
 		private String batteryType;
+		private String boxId;
+		private Integer channel;
+		private String serviceCode;
 	}
 
 	/**
