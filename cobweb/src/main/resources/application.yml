@@ -71,7 +71,7 @@ app:
 
 # Server
 server:
-    port: ${server_port:19091}
+    port: ${server_port:7003}
 
 command:
     push:
