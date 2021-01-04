@@ -29,8 +29,8 @@
 		</rollingPolicy>
 	</appender>
 
-	<logger name="com.relayrides.pushy" level="DEBUG" />
-	<logger name="vc.thinker" level="DEBUG" />
+	<logger name="com.relayrides.pushy" level="INFO" />
+	<logger name="vc.thinker" level="INFO" />
 	<!-- <logger name="org.springframework.security" level="DEBUG"/> -->
 
 	<root level="INFO">
