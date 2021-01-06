@@ -33,9 +33,17 @@ public class SyncBoxJob {
 	public void execute() {
 		LOGGER.info("开始执行充电柜数据同步");
 		List<CabinetStatus> onlines = cabinetStatusService.listOnline();
-		onlines.forEach(o->{
-			cabinetRemoteHandle.synchronizePb(o.getCabinetCode(),o.getServiceCode());
-		});
+		LOGGER.info("online:{}", onlines.size());
+		if(!onlines.isEmpty()) {
+			onlines.forEach(o->{
+				synchronizePb(o.getCabinetCode(),o.getServiceCode());
+			});
+		}
+	}
+	public void synchronizePb(String boxId, String serviceCode) {
+//		for(int i=0;i<=10;i++) {
+			cabinetRemoteHandle.synchronizePb(boxId, serviceCode);
+//		}
 	}
 	
 }

@@ -50,7 +50,7 @@ spring:
         active: ${ spring_profiles_active:dev}
     data:
         mongodb:
-            database: flash
+            database: uniq
             host: ${spring_data_mongodb_host:120.26.241.98}
             port: ${spring_data_mongodb_port:10001}
 
