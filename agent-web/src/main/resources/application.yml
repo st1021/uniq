@@ -52,9 +52,9 @@ sms:
 
 # redis        
 redis:
-    host: ${ redis_host:localhost}
-    port: ${ redis_port:6379}
-    password: ${ redis_password:root123}
+    host: ${redis_host:localhost}
+    port: ${redis_port:6379}
+    password: ${redis_password:root123}
     timeout: 7000
     database: 1
     message:
@@ -85,9 +85,9 @@ spring:
             port: ${spring_data_mongodb_port:10001}
     redis:
         database: 2
-        host: ${ spring_redis_host:localhost}
+        host: ${spring_redis_host:localhost}
         port: ${spring_redis_port:6379}
-        password: ${ spring_redis_password:root123}
+        password: ${spring_redis_password:root123}
     messages:
         basename: messages/messages
         cache-seconds: 3600
