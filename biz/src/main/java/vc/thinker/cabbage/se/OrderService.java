@@ -354,8 +354,8 @@ public class OrderService {
 		Order order = new Order();
 		order.setOrderCode(OrderCodeUtils.getOrderCode(member.getUid()));
 		order.setUid(member.getUid());
-		order.setBeginLocationLat(cabinet.getLocationLat());
-		order.setBeginLocationLon(cabinet.getLocationLon());
+		order.setBeginLocationLat(seller.getLocationLat());
+		order.setBeginLocationLon(seller.getLocationLon());
 		order.setBeginLocationDetails(cabinet.getLocationAddress()+cabinet.getLocationDesc());
 		order.setCountry(seller.getCountry());
 		order.setCurrency(currency);

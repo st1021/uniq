@@ -187,11 +187,11 @@ public class ShareTcpActors extends UntypedActor {
 		case ShareCmdConstatns.rent_confirm:
 			shareCmd.setSlot(orgmsg.substring(18, 20));
 			shareCmd.setResult(orgmsg.substring(20, 22).equals("01"));
-			shareCmd.setPbId(orgmsg.substring(22));
+			shareCmd.setPbId(handlerPbId(orgmsg.substring(22)));
 			break;
 		case ShareCmdConstatns.return_back:
 			shareCmd.setSlot(orgmsg.substring(18, 20));
-			shareCmd.setPbId(orgmsg.substring(20));
+			shareCmd.setPbId(handlerPbId(orgmsg.substring(20)));
 			break;
 		case ShareCmdConstatns.sync_battery:
 			int parseInt = Integer.parseInt(orgmsg.substring(18, 20), 16);
@@ -206,7 +206,7 @@ public class ShareTcpActors extends UntypedActor {
 					String level = substring.substring(18);
 					PortableBattery pb = new PortableBattery();
 					pb.setCabinetChannel(Integer.parseInt(slot));
-					pb.setPortableBatteryCode(pbId);
+					pb.setPortableBatteryCode(handlerPbId(pbId));
 					pb.setVoltage(Integer.parseInt(level));
 					pb.setElectricity(getElectricityByLevel(level));
 					pb.setCreateTime(new Date());
@@ -228,6 +228,13 @@ public class ShareTcpActors extends UntypedActor {
 		return shareCmd;
 	}
 	
+	
+	private String handlerPbId(String pbId) {
+		StringBuffer sBuffer = new StringBuffer();
+		sBuffer.append(hex2Ascii(pbId.substring(0, 8))).append(pbId.substring(8).toUpperCase());
+		return sBuffer.toString();
+	}
+	
 	public static void main(String[] args) {
 //		String orgmsg = "001f6a013f11223344000e3132302e32362e3234312e393800000537303032001e";
 //		ServerInfo serverInfo = getServerInfo(orgmsg);
@@ -235,9 +242,13 @@ public class ShareTcpActors extends UntypedActor {
 //		System.out.println(serverInfo.getPort());
 //		System.out.println(serverInfo.getHearbet());
 //		String string = "48594341303932303132303030303031";
-		String string = "524c31417c000041";
-		String hex2Ascii = hex2Ascii(string);
-		System.out.println(hex2Ascii);
+		String string = "485943420b030068";
+		String substring = string.substring(0, 8);
+		System.out.println(substring);
+		System.out.println(string.substring(8));
+		System.out.println(hex2Ascii(substring));
+		
+//		System.out.println(handlerPbId(string));
 		
 //		String string2 = "0b030071";
 //		int parseInt2 = Integer.parseInt("0b", 16);
