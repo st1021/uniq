@@ -16,5 +16,6 @@ public class ShareCmdConstatns {
 	public static final String rent_confirm = "65";
 	public static final String return_back = "66";
 	public static final String get_server = "6a";
+	public static final String upgrade = "67";
 	
 }

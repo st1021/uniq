@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import com.alibaba.fastjson.JSON;
@@ -89,6 +88,7 @@ public class ShareTcpActors extends UntypedActor {
 			break;
 		case ShareCmdConstatns.sync_server:
 			LOGGER.info("boxId:{}, sync_server", cmd.getBoxId());
+			shareTcpCommonPush.upgrade(session);
 			break;
 		case ShareCmdConstatns.sync_battery:
 			LOGGER.info("boxId:{}, sync_battery", cmd.getBoxId());
@@ -104,6 +104,9 @@ public class ShareTcpActors extends UntypedActor {
 			break;
 		case ShareCmdConstatns.get_server:
 			LOGGER.info("boxId:{} 上报服务器地址：{},{},{}", cmd.getBoxId(), cmd.getServer().getIp(), cmd.getServer().getPort(), cmd.getServer().getHearbet());
+			break;
+		case ShareCmdConstatns.upgrade:
+			LOGGER.info("boxId:{}, upload upgrade response", cmd.getBoxId());
 			break;
 		default:
 			break;

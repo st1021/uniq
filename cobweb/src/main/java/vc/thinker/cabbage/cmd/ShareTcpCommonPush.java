@@ -137,6 +137,25 @@ public class ShareTcpCommonPush implements TcpCommandPush {
 		session.write(resp);
 	}
 
+	/**
+	 * 升级
+	 * @param session
+	 */
+	public void upgrade(IoSession session) {
+		byte[] resp = new byte[9];
+		resp[0] = 0x00;
+		resp[1] = 0x07;
+		resp[1] = 0x67;
+		resp[3] = vsn;
+		resp[4] = checkSum;
+		resp[5] = 0x11;
+		resp[6] = 0x22;
+		resp[7] = 0x33;
+		resp[8] = 0x44;
+		LOGGER.info("upgrade request body ", HexUtils.toHexString(resp));
+		session.write(resp);
+	}
+
 	@Override
 	public void sendSync(String boxId) {
 		IoSession session = sessionStoreManager.getSession(boxId);
@@ -379,5 +398,7 @@ public class ShareTcpCommonPush implements TcpCommandPush {
 //		System.out.println(HexUtils.toHexString(resp));
 
 	}
+
+	
 
 }
