@@ -411,7 +411,7 @@ public class OrderRebateService {
 		log.info("订单:[{}],实际支付金额:[{}]", order.getOrderCode(), order.getPayPrice());
 		
 		if (null == order.getPayPrice() || order.getPayPrice().compareTo(BigDecimal.ZERO) <= 0) {
-			log.info("订单号:[{}],实际支付金额:[{}] 小于等于0, 不予处理");
+			log.info("实际支付金额小于等于0, 不予处理");
 			return;
 		}
 
